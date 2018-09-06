@@ -1,11 +1,11 @@
 {
   "name": "@elevenlabs/react-formbuilder",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "Form builder for React, without tears",
   "main": "./lib/index.js",
   "scripts": {
     "build": "babel ./src --out-dir ./lib",
-    "storybook": "start-storybook -p 6006",
+    "storybook": "start-storybook -s ./public -p 6006",
     "build-storybook": "build-storybook"
   },
   "keywords": [
@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/eleven-labs/react-formbuilder#readme",
   "dependencies": {
+    "cross-fetch": "^2.2.2",
     "form-data-to-object": "^0.2.0",
     "formik": "^1.0.2",
     "lodash": "^4.17.10",
@@ -44,14 +45,19 @@
     "babel-runtime": "^6.26.0",
     "css-loader": "^1.0.0",
     "extract-text-webpack-plugin": "^3.0.2",
+    "i18next": "^11.6.0",
+    "i18next-browser-languagedetector": "^2.2.3",
+    "i18next-xhr-backend": "^1.5.1",
     "node-sass": "^4.9.2",
     "react": "^16.4.2",
     "react-dom": "^16.4.2",
+    "react-i18next": "^7.11.0",
     "sass-loader": "^7.1.0",
     "style-loader": "^0.22.1",
     "uglifyjs-webpack-plugin": "^1.2.7"
   },
   "peerDependencies": {
-    "react": ">=15"
+    "react": ">=15",
+    "react-i18next": ">=7"
   }
 }

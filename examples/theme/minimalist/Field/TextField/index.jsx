@@ -8,7 +8,7 @@ const TextField = ({
   value = '',
   onChange,
   onFocus,
-  onBlur
+  onBlur = () => { },
 }) => {
   return (
     <input

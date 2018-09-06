@@ -1,19 +1,20 @@
 import React, { Component, Fragment } from 'react';
 
-import LoginFormBuilder from '../../formBuilder/login';
+import { translate, Trans } from 'react-i18next';
+
+import LoginForm from '../../form/login';
 import Code from '../Code';
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-class BasicExample extends Component {
-
-    static defaultProps = {
-        initialValues: {}
-    };
+class LoginExample extends Component {
 
     state = {
         data: {}
     };
+
+    constructor(props) {
+        super(props);
+        this.LoginForm = LoginForm({ translate: props.t });
+    }
 
     validateCredentials(credentials, setErrors) {
         if (credentials.username !== 'guest') {
@@ -31,25 +32,20 @@ class BasicExample extends Component {
 
     onSubmit = (payload, { setSubmitting, setErrors }) => {
         this.setState({ data: {} });
-        sleep(1000).then(() => {
-            this.validateCredentials(payload, setErrors);
-            setSubmitting(false);
-        });
+        this.validateCredentials(payload, setErrors);
+        setSubmitting(false);
     };
 
     render() {
         const
-            Form = LoginFormBuilder.Formik,
+            Form = this.LoginForm.Formik,
             { data } = this.state;
 
         return (
             <Fragment>
                 <main>
-                    <h1>Login form</h1>
-                    <Form
-                        onSubmit={this.onSubmit}
-                        initialValues={this.props.initialValues}
-                    />
+                    <h1>Login</h1>
+                    <Form onSubmit={this.onSubmit} />
                     <p style={{ display: 'flex', justifyContent: 'space-around' }}>
                         <span>Username: guest</span>
                         <span>Password: guest01</span>
@@ -61,4 +57,4 @@ class BasicExample extends Component {
     }
 }
 
-export default BasicExample;
+export default translate(['formbuilder_validators'], { wait: true })(LoginExample);

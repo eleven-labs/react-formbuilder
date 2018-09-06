@@ -1,35 +1,23 @@
-import merge from 'lodash/merge';
-
-import defaultValidations from '../validations';
-import ValidatorEn from '../locale/validator.en';
-import validatorFr from '../locale/validator.fr';
-
-const defaultMessages = {
-    fr: validatorFr,
-    en: ValidatorEn
-};
-
-export const buildValidators = ({ label, validators, locale = 'en', customValidators: { validations, messages } = {} }) => {
-    validations = merge(defaultValidations, validations || {});
-    messages = merge(defaultMessages[locale], messages || {});
-
+export const buildValidators = ({ label = null, validators, translate = () => { }, validations = {}, messages = {}, values = {} }) => {
     validators = validators.map((validator) => {
         if (typeof validator === 'string') {
             const
                 validation = validations[validator],
                 message = messages[validator];
 
-            return [validation, typeof message === 'function' && label ? message(label) : message];
+            return [v => validation(v, { values }), translate(message, { label })];
         }
 
         if (!Array.isArray(validator)) throw new Error(`The \`${JSON.stringify(validator)}\` validator is invalid!`);
 
-        let [validation, message] = validator;
-        if (typeof validation === 'string') validator[0] = validations[validation];
+        let [validation, args = {}, message] = validator;
+
+        if (typeof validation === 'string' && !message) message = messages[validation];
+        if (typeof validation === 'string') validation = validations[validation];
         if (typeof validation !== 'function') throw new Error(`The validation \`${JSON.stringify(validation)}\` must be a function!`);
         if (message && typeof message !== 'string') throw new Error(`The message \`${JSON.stringify(validation)}\` must be of type string!`);
 
-        return validator;
+        return [(v) => validation(v, { values, ...args }), translate(message, { label, ...args })];
     });
 
     return validators;

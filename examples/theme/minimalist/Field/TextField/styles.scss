@@ -17,4 +17,9 @@
       border-color: red;
     }
   }
+  &.success {
+    .minimalist-field__text-type {
+      border-color: green;
+    }
+  }
 }

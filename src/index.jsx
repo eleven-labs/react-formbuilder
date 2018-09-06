@@ -1,37 +1,69 @@
 import React from 'react';
 import { Formik, Field } from 'formik';
-import merge from 'lodash/merge';
+import { merge, snakeCase } from 'lodash';
 import spected from 'spected';
 import formDataToObject from 'form-data-to-object';
 import { pascalCase, pascalCaseFormData } from './helpers/string';
 import { buildValidators, getErrorsFromValidationResult } from './helpers/validator';
+import validations from './validations';
 
 class FormBuilder {
 
-    layout = null;
-    initialValues = {};
-    fieldsInfo = {};
-    customValidators = {};
-    validators = {};
-    fields = {};
-    buttons = [];
+    _translate = () => { };
+    _theme = null;
+    _initialValues = {};
+    _fieldsInfo = {};
+    _fields = {};
+    _validators = {};
+    _validations = validations;
+    _validatorsSpec = null;
 
-    constructor({ theme, validators, locale = 'en' }) {
-        if (!theme) throw new Error('The theme is not defined!');
-        
-        this.theme = theme;
-        this.customValidators = validators;
-        this.locale = locale;
-    }
-
-    setLayout(layout) {
-        this.layout = layout;
+    setTranslate(translate) {
+        this._translate = translate;
         return this;
     }
 
-    _buildField(name, FieldType, { hasValidators, ...props }) {
-        let fieldProps = {
-            ...props,
+    setTheme(theme) {
+        this._theme = theme;
+        return this;
+    }
+
+    setValidations(validations) {
+        this._validations = {
+            ...this._validations,
+            ...validations,
+        };
+        return this;
+    }
+
+    createForm() {
+        if (!this._translate) throw new Error('The translate is not defined!');
+        if (!this._theme) throw new Error('The theme is not defined!');
+
+        this._initialValues = {};
+        this._fieldsInfo = {};
+        this._fields = {};
+
+        return this;
+    }
+
+    get Fields() {
+        return this._fields;
+    }
+
+    _validationMessages() {
+        const validationMessages = Object.keys(this._validations)
+            .reduce((acc, validationKey) => {
+                acc[validationKey] = `formbuilder.validators.${snakeCase(validationKey)}`;
+                return acc;
+            }, {});
+
+        return validationMessages;
+    }
+
+    _buildField(name, FieldType, fieldProps) {
+        fieldProps = {
+            ...fieldProps,
             id: pascalCase(name),
             name
         };
@@ -40,44 +72,24 @@ class FormBuilder {
             <Field
                 name={name}
                 render={({ field, form }) => {
-                    const error = form.touched[name] && form.errors[name];
+                    fieldProps = {
+                        ...fieldProps,
+                        ...field,
+                        ...props,
+                        dirty: form.initialValues[name] !== form.values[name]  ? true : false,
+                        touched: form.touched[name] ? form.touched[name] : false,
+                        error: form.errors[name] ? form.errors[name] : null,
+                        form
+                    };
 
-                    return <FieldType
-                        form={form}
-                        hasValidators={hasValidators}
-                        {...field}
-                        {...fieldProps}
-                        {...props}
-                        error={error}
-                    />
+                    return <FieldType {...fieldProps} />
                 }}
             />
         );
     }
 
-    _getDefaultValue(fieldType, props) {
-        switch (fieldType) {
-            case 'RateField':
-                return 0;
-            case 'DatePickerField':
-            case 'SliderField':
-                return null;
-            case 'SwitchField':
-                return false;
-            case 'CheckboxField':
-                return [];
-            case 'SelectField':
-                if (props.mode && props.mode === 'multiple') {
-                    return [];
-                }
-                return '';
-            default:
-                return '';
-        }
-    }
-
     add(name, fieldType, { validators, ...props }) {
-        const FieldType = this.theme[fieldType];
+        const FieldType = this._theme[fieldType];
         if (!FieldType) throw new Error('This field does not exist in the theme you have set up!');
 
         const keyArray = name.split('.');
@@ -90,13 +102,8 @@ class FormBuilder {
             }, '');
         }
 
-        props = {
-            layout: this.layout,
-            ...props
-        };
-
-        this.fieldsInfo = merge(
-            this.fieldsInfo,
+        this._fieldsInfo = merge(
+            this._fieldsInfo,
             formDataToObject.toObj({
                 [name]: {
                     fieldType: FieldType,
@@ -105,27 +112,28 @@ class FormBuilder {
             })
         );
 
-        this.initialValues = merge(
-            this.initialValues,
-            formDataToObject.toObj({
-                [name]: this._getDefaultValue(fieldType, props)
-            })
-        );
-
-        if (validators) {
-            this.validators = merge(
-                this.validators,
+        if ((/Field$/).test(fieldType)) {
+            this._initialValues = merge(
+                this._initialValues,
                 formDataToObject.toObj({
-                    [name]: buildValidators({ label: props.label || props.placeholder || null, validators, locale: this.locale, customValidators: this.customValidators })
+                    [name]: ''
                 })
             );
+
+            if (validators) {
+                this._validators = merge(
+                    this._validators,
+                    formDataToObject.toObj({
+                        [name]: validators
+                    })
+                );
+            }
         }
 
-        this.fields = merge(
-            this.fields,
+        this._fields = merge(
+            this._fields,
             formDataToObject.toObj({
                 [pascalCaseFormData(name)]: this._buildField(name, FieldType, {
-                    hasValidators: !!validators,
                     ...props,
                 }),
             })
@@ -134,53 +142,58 @@ class FormBuilder {
         return this;
     }
 
-    addButton(props) {
-        this.buttons.push({
-            layout: this.layout,
-            ...props
-        });
-        return this;
-    }
+    _validate(values) {
+        if (!this._validatorsSpec) {
+            this._validatorsSpec = (values) => Object.keys(this._validators)
+                .reduce((acc, key) => {
+                    const validators = this._validators[key];
+                    const { props } = this._fieldsInfo[key];
 
-    validate(values) {
-        if (!this.validators) return;
+                    acc[key] = buildValidators({
+                        label: props.label || props.placeholder || null,
+                        validators,
+                        translate: this._translate,
+                        validations: this._validations,
+                        messages: this._validationMessages(),
+                        values,
+                    });
+                    return acc;
+                }, {});
+        }
 
-        const validationResult = spected(this.validators, values);
-
+        const spec = this._validatorsSpec(values);
+        const validationResult = spected(spec, values);
+        
         return getErrorsFromValidationResult(validationResult);
     }
 
-    renderActions(props) {
-        const { renderActions } = this.theme;
-        if (!renderActions) throw new Error('The render actions function is not configured in the theme!');
-
-        return renderActions(props, this);
-    }
-
-    renderFields() {
-        let fields = formDataToObject.fromObj(this.fields);
+    _renderFields() {
+        let fields = formDataToObject.fromObj(this._fields);
 
         return Object.values(fields).map((Field, key) =>
             Array.isArray(Field) ? Field : <Field key={key} />
         )
     }
 
-    render({ className, ...props }) {
+    _render({ className, fields, handleSubmit }) {
         return (
-            <form className={className} onSubmit={props.handleSubmit}>
-                {this.renderFields()}
-                {this.renderActions(props)}
+            <form className={className} onSubmit={handleSubmit}>
+                {fields}
             </form>
         );
     }
 
-    Formik = ({ formRef, onSubmit, initialValues = {}, className, render }) => {
+    Formik = ({ formRef, onSubmit, initialValues = {}, className, renderFields }) => {
         return <Formik
             ref={formRef}
             onSubmit={onSubmit}
-            initialValues={{ ...this.initialValues, ...initialValues }}
-            validate={(values) => this.validate(values)}
-            render={render ? render : (props) => this.render({ className, ...props })}
+            initialValues={{ ...this._initialValues, ...initialValues }}
+            validate={(values) => this._validate(values)}
+            render={(props) => this._render({
+                className,
+                fields: renderFields ? renderFields() : this._renderFields(),
+                ...props
+            })}
         />
     }
 }

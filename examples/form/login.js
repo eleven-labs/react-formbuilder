@@ -1,12 +1,13 @@
-import React from 'react';
-
-import FormBuilder from '../../lib';
+import FormBuilder from '../../src';
 import theme from '../theme/minimalist';
 
-const LoginFormBuilder = () => {
-    const formBuilder = new FormBuilder({ theme });
+const LoginForm = ({ translate }) => {
+    const form = new FormBuilder();
 
-    let form = formBuilder
+    form
+        .setTranslate(translate)
+        .setTheme(theme)
+        .createForm()
         .add('username', 'TextField', {
             label: 'Username',
             required: true,
@@ -20,13 +21,10 @@ const LoginFormBuilder = () => {
             required: true,
             validators: [
                 'Required',
-                [
-                    value => value.length >= 6,
-                    `Password has to be longer than 6 characters!`,
-                ]
+                ['IsGreaterThan', { length: 6 }]
             ],
         })
-        .addButton({
+        .add('submit', 'Button', {
             type: 'submit',
             label: 'Log in',
         });
@@ -34,4 +32,4 @@ const LoginFormBuilder = () => {
     return form;
 };
 
-export default LoginFormBuilder();
+export default LoginForm;

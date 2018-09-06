@@ -7,7 +7,7 @@ const Code = props => (
             top: 12,
             right: 12,
             bottom: 12,
-            width: 500,
+            width: '50%',
             border: '1px solid #eee',
             borderRadius: 4,
             overflowX: 'scroll',

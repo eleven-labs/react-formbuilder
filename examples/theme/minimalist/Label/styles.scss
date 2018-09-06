@@ -9,4 +9,9 @@
       color: red;
     }
   }
+  &.success {
+    .minimalist-field__label {
+      color: green;
+    }
+  }
 }

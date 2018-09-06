@@ -116,7 +116,7 @@ class FormBuilder {
             this._initialValues = merge(
                 this._initialValues,
                 formDataToObject.toObj({
-                    [name]: ''
+                    [name]: props.initialValue ? props.initialValue : ''
                 })
             );
 

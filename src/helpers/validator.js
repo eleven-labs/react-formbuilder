@@ -10,7 +10,17 @@ export const buildValidators = ({ label = null, validators, translate = () => { 
 
         if (!Array.isArray(validator)) throw new Error(`The \`${JSON.stringify(validator)}\` validator is invalid!`);
 
-        let [validation, args = {}, message] = validator;
+        let [validation, ...rest] = validator;
+
+        let message = null;
+        let args = {};
+
+        if (typeof rest[0] !== 'string') {
+            args = rest[0];
+            message = rest[1] ? rest[1] : null;
+        } else {
+            message = rest[0];
+        }
 
         if (typeof validation === 'string' && !message) message = messages[validation];
         if (typeof validation === 'string') validation = validations[validation];

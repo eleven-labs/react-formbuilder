@@ -1,5 +1,0 @@
-{
-    "home": {
-        "hello": "Salut, {{name}}! Je crois que ça marche!!! On peut modifier les trads sans reload l'appli :)"
-    }
-}

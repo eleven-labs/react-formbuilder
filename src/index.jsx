@@ -202,8 +202,8 @@ class FormBuilder {
         return getErrorsFromValidationResult(validationResult);
     }
 
-    _render({ handleSubmit }) {
-        const Form = this._theme['Form'];
+    _render({ handleSubmit, ...props }) {
+        const Form = this.Form;
         const Fields = Object.keys(this.Fields).reduce((acc, name) => {
             const field = this.Fields[name];
             acc.push(field.Row);
@@ -211,7 +211,7 @@ class FormBuilder {
         }, []);
 
         return (
-            <Form onSubmit={handleSubmit}>
+            <Form {...props}>
                 {Fields.map((Row, key) => <Row key={key} />)}
             </Form>
         );
@@ -221,22 +221,25 @@ class FormBuilder {
         return this._fields;
     }
 
-    Form = ({ formikProps: { handleSubmit }, children }) => {
+    Form = ({ handleSubmit, children, ...props }) => {
         const Form = this._theme['Form'];
         return (
-            <Form onSubmit={handleSubmit}>
+            <Form onSubmit={handleSubmit} {...props}>
                 {children}
             </Form>
         );
     };
 
-    Formik = ({ formRef, onSubmit, initialValues = {}, render }) => {
+    Formik = ({ formRef, onSubmit, initialValues = {}, render, ...props }) => {
+        let formikRender = (formikProps) => this._render({ ...formikProps, ...props });
+        if (render) formikRender = (formikProps) => render({ ...formikProps, ...props });
+
         return <Formik
             ref={formRef}
             onSubmit={onSubmit}
             initialValues={{ ...this._initialValues, ...initialValues }}
             validate={(values) => this._validate(values)}
-            render={render ? render : (formikProps) => this._render(formikProps)}
+            render={formikRender}
         />
     }
 }

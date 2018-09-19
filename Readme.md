@@ -47,7 +47,7 @@ const allowedKeysInObject = (keys, props) => {
 };
 
 const Form = {
-  Group: ({
+  Row: ({
     children,
     fieldType: FieldType,
     label,
@@ -71,7 +71,7 @@ const Form = {
   },
   Fields: {
     Text: props => {
-      let allowedPropsTextField = allowedKeysInObject(
+      let allowedPropsTextField = pick(
         [
           "id",
           "type",
@@ -100,6 +100,16 @@ const Form = {
 
 const theme = {
   Form: ({ children, onSubmit }) => <form onSubmit={onSubmit}>{children}</form>,
+  Row: ({ label: Label, fieldType: FieldType, errors: Errors }) => (
+    <Row>
+      {Label && <Label />}
+      <FieldType />
+      {Errors && <Errors />}
+    </Form.Row>
+  ),
+  Label: ({ label }) => <Label>{label}</Label>,
+  Errors: ({ errors }) => errors ? <Helper>{errors}</Helper> : null,
+
   TextField: props => {
     return <Form.Group fieldType={Form.Fields.Text} {...props} />;
   },

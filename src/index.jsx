@@ -91,7 +91,7 @@ class FormBuilder {
             name={name}
             render={({ field, form }) => {
                 props = {
-                    id: pascalCase(name),
+                    id: camelCase(name),
                     ...field,
                     ...props,
                     dirty: form.initialValues[name] !== form.values[name] ? true : false,
@@ -202,7 +202,7 @@ class FormBuilder {
         return getErrorsFromValidationResult(validationResult);
     }
 
-    _render({ handleSubmit, ...props }) {
+    _render(props) {
         const Form = this.Form;
         const Fields = Object.keys(this.Fields).reduce((acc, name) => {
             const field = this.Fields[name];

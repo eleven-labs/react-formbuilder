@@ -36,42 +36,25 @@ Before you start, you need to create a theme and a translation function or use I
 ### Creating theme
 
 ```jsx
-import React from "react";
-
-const allowedKeysInObject = (keys, props) => {
-  const values = Object.keys(props).reduce((acc, k) => {
-    if (keys.includes(k)) acc[k] = props[k];
-    return acc;
-  }, {});
-  return values;
-};
+import React from 'react';
+import { pick } from 'lodash';
 
 const Form = {
-  Row: ({
-    children,
-    fieldType: FieldType,
-    label,
-    touched,
-    error,
-    ...props
-  }) => {
-    if (children) return <div style={{ marginTop: 10 }}>{children}</div>;
-    let helper = touched && error ? error : null;
-    return (
+  Row: ({ children }) => (
       <div style={{ marginTop: 10 }}>
-        {label && (
-          <label htmlFor={props.id} style={{ marginRight: 10 }}>
-            {label}
-          </label>
-        )}
-        <FieldType {...props} />
-        {helper && <p>{helper}</p>}
+        {children}
       </div>
-    );
-  },
+  ),
+  Label: ({ htmlFor, label }) => (
+    <label htmlFor={htmlFor} style={{ marginRight: 10 }}>
+      {label}
+    </label>
+  ),
+  Helper: ({ children }) => <p>{children}</p>,
   Fields: {
     Text: props => {
       let allowedPropsTextField = pick(
+        props,
         [
           "id",
           "type",
@@ -83,16 +66,15 @@ const Form = {
           "placeholder",
           "className"
         ],
-        props
       );
 
       return <input {...allowedPropsTextField} />;
     }
   },
   Button: ({ label, ...props }) => {
-    let allowedPropsButton = allowedKeysInObject(
+    let allowedPropsButton = pick(
+      props,
       ["type", "className", "onClick"],
-      props
     );
     return <button {...allowedPropsButton}>{label}</button>;
   }
@@ -101,23 +83,17 @@ const Form = {
 const theme = {
   Form: ({ children, onSubmit }) => <form onSubmit={onSubmit}>{children}</form>,
   Row: ({ label: Label, fieldType: FieldType, errors: Errors }) => (
-    <Row>
+    <Form.Row>
       {Label && <Label />}
       <FieldType />
       {Errors && <Errors />}
     </Form.Row>
   ),
-  Label: ({ label }) => <Label>{label}</Label>,
-  Errors: ({ errors }) => errors ? <Helper>{errors}</Helper> : null,
+  Label: ({ label }) => <Form.Label>{label}</Form.Label>,
+  Errors: ({ errors }) => errors ? <Form.Helper>{errors}</Form.Helper> : null,
 
-  TextField: props => {
-    return <Form.Group fieldType={Form.Fields.Text} {...props} />;
-  },
-  Button: props => (
-    <Form.Group>
-      <Form.Button {...props} />
-    </Form.Group>
-  )
+  TextField: props => <Form.Fields.Text {...props} />,
+  Button: props => <Form.Button {...props} />
 };
 
 export default theme;

@@ -1,6 +1,6 @@
 {
   "name": "@elevenlabs/react-formbuilder",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Form builder for React, without tears",
   "main": "./lib/index.js",
   "scripts": {
@@ -24,9 +24,9 @@
   },
   "homepage": "https://github.com/eleven-labs/react-formbuilder#readme",
   "dependencies": {
-    "form-data-to-object": "^0.2.0",
     "formik": "^1.2.0",
     "lodash": "^4.17.10",
+    "recompose": "^0.30.0",
     "spected": "^0.7.0"
   },
   "devDependencies": {

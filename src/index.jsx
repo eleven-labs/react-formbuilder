@@ -1,8 +1,7 @@
 import React from 'react';
-import { Formik, FastField } from 'formik';
+import { Formik, FastField, connect as formikConnect } from 'formik';
 import { merge, snakeCase, camelCase, capitalize } from 'lodash';
 import spected from 'spected';
-import formDataToObject from 'form-data-to-object';
 import { buildValidators, getErrorsFromValidationResult } from './helpers/validator';
 import validations from './validations';
 
@@ -11,6 +10,7 @@ const pascalCase = (string) => capitalize(camelCase(string));
 class FormBuilder {
 
     _fields = {};
+    _fieldComponents = {};
 
     _translate = null;
     _theme = null;
@@ -86,14 +86,59 @@ class FormBuilder {
         return validationMessages;
     }
 
-    _buildFieldType(name, FieldType, props) {
+    _buildFieldComponent(name) {
+        const Row = this._theme['Row'];
+        const { fieldType, required } = this._fields[name];
+
+        const components = {
+            Label: (props) => this.Label(name, props),
+            Field: (props) => this.Field(name, props),
+            Errors: (props) => this.Errors(name, props)
+        };
+
+        this._fieldComponents[pascalCase(name)] = {
+            Row: (props) => (<FastField
+                name={name}
+                render={({ form }) => Row({
+                    ...components,
+                    fieldType,
+                    required,
+                    errors: form.isSubmitting || form.touched[name] && form.errors[name] ? form.errors[name] : null,
+                    ...props
+                })}
+            />),
+            ...components,
+        };
+    }
+
+    Label(name, labelProps = {}) {
+        const Label = this._theme['Label'];
+        const { id, label, required } = this._fields[name];
+
+        const props = {
+            label,
+            required,
+            htmlFor: id,
+            ...labelProps,
+        };
+
+        return <Label {...props} />;
+    }
+
+    Field(name, fieldProps = {}) {
+        const { fieldType, ...fieldTypeProps } = this._fields[name];
+
+        const FieldType = this._theme[fieldType];
+        if (!FieldType) throw new Error(`The \`${fieldType}\` component does not exist in the theme you have set up!`);
+
         return <FastField
             name={name}
             render={({ field, form }) => {
-                props = {
-                    id: camelCase(name),
+                const props = {
                     ...field,
-                    ...props,
+                    ...fieldTypeProps,
+                    ...fieldProps,
+                    formik: form,
                     dirty: form.initialValues[name] !== form.values[name] ? true : false,
                     touched: form.touched[name] ? form.touched[name] : false,
                     errors: form.errors[name] ? form.errors[name] : null,
@@ -104,26 +149,23 @@ class FormBuilder {
         />;
     }
 
-    _buildErrors({ name, ...props }) {
+    Errors(name, errorsProps = {}) {
         const Errors = this._theme['Errors'];
-        return <FastField
-            name={name}
-            render={({ form }) => {
-                const touched = form.touched[name] ? form.touched[name] : false;
-                props = {
-                    ...props,
-                    errors: touched && form.errors[name] ? form.errors[name] : null,
-                };
 
-                return <Errors {...props} />
-            }}
-        />
+        return formikConnect(({ formik, ...props }) => {
+            const errors = formik.errors[name];
+            const touch = formik.touched[name];
+
+            return formik.isSubmitting || touch && errors ? <Errors errors={errors} {...props} /> : null;
+        })(errorsProps);
+    }
+
+    Row(name, rowProps = {}) {
+        const { Row } = this.Fields[pascalCase(name)];
+        return <Row {...rowProps} />;
     }
 
     add(name, fieldType, { validators, ...props }) {
-        const FieldType = this._theme[fieldType];
-        if (!FieldType) throw new Error(`The \`${fieldType}\` component does not exist in the theme you have set up!`);
-
         const keyArray = name.split('.');
         if (keyArray.length > 1) {
             name = keyArray.reduce((acc, key) => {
@@ -134,36 +176,24 @@ class FormBuilder {
             }, '');
         }
 
-        let componentField = {
-            Label: (labelProps) => this._theme['Label']({ name, ...props, ...labelProps }),
-            FieldType: (fieldTypeProps) => this._buildFieldType(name, FieldType, { ...props, fieldTypeProps }),
-            Errors: (errorsProps) => this._buildErrors({ name, ...props, ...errorsProps }),
-        };
-
-        componentField.Row = (rowProps) => this._theme['Row']({
-            label: componentField.Label,
-            fieldType: componentField.FieldType,
-            errors: componentField.Errors,
-            ...rowProps
-        });
-
         this._fields = merge(
             this._fields,
             {
-                [pascalCase(name)]: {
-                    ...componentField,
-                    props: {
-                        name,
-                        ...props
-                    }
+                [name]: {
+                    fieldType,
+                    name,
+                    id: camelCase(name),
+                    ...props
                 }
             }
         );
 
+        this._buildFieldComponent(name);
+
         if (!(/Button$/).test(fieldType)) {
             this._initialValues = merge(
                 this._initialValues,
-                formDataToObject.toObj({ [name]: props.initialValue ? props.initialValue : '' })
+                { [name]: props.initialValue ? props.initialValue : '' }
             );
 
             if (validators) {
@@ -182,10 +212,10 @@ class FormBuilder {
             this._validatorsSpec = (values) => Object.keys(this._validators)
                 .reduce((acc, key) => {
                     const validators = this._validators[key];
-                    const { props } = this._fields[pascalCase(key)];
+                    const { label, placeholder } = this._fields[key];
 
                     acc[key] = buildValidators({
-                        label: props.label || props.placeholder || null,
+                        label: label || placeholder || null,
                         validators,
                         translate: this._translate,
                         validations: this._validations,
@@ -204,21 +234,19 @@ class FormBuilder {
 
     _render(props) {
         const Form = this.Form;
-        const Fields = Object.keys(this.Fields).reduce((acc, name) => {
-            const field = this.Fields[name];
-            acc.push(field.Row);
-            return acc;
-        }, []);
 
         return (
             <Form {...props}>
-                {Fields.map((Row, key) => <Row key={key} />)}
+                {Object.keys(this.Fields).map((name, key) => {
+                    const { Row } = this.Fields[name];
+                    return <Row key={key} />;
+                })}
             </Form>
         );
     }
 
     get Fields() {
-        return this._fields;
+        return this._fieldComponents;
     }
 
     Form = ({ handleSubmit, children, ...props }) => {

@@ -36,64 +36,31 @@ Before you start, you need to create a theme and a translation function or use I
 ### Creating theme
 
 ```jsx
-import React from 'react';
-import { pick } from 'lodash';
-
-const Form = {
-  Row: ({ children }) => (
-      <div style={{ marginTop: 10 }}>
-        {children}
-      </div>
-  ),
-  Label: ({ htmlFor, label }) => (
-    <label htmlFor={htmlFor} style={{ marginRight: 10 }}>
-      {label}
-    </label>
-  ),
-  Helper: ({ children }) => <p>{children}</p>,
-  Fields: {
-    Text: props => {
-      let allowedPropsTextField = pick(
-        props,
-        [
-          "id",
-          "type",
-          "name",
-          "value",
-          "onChange",
-          "onBlur",
-          "onFocus",
-          "placeholder",
-          "className"
-        ],
-      );
-
-      return <input {...allowedPropsTextField} />;
-    }
-  },
-  Button: ({ label, ...props }) => {
-    let allowedPropsButton = pick(
-      props,
-      ["type", "className", "onClick"],
-    );
-    return <button {...allowedPropsButton}>{label}</button>;
-  }
-};
+import React from "react";
+import Form from "../components/Form";
+import Button from "../components/Button";
 
 const theme = {
-  Form: ({ children, onSubmit }) => <form onSubmit={onSubmit}>{children}</form>,
-  Row: ({ label: Label, fieldType: FieldType, errors: Errors }) => (
-    <Form.Row>
-      {Label && <Label />}
-      <FieldType />
-      {Errors && <Errors />}
+  Form: ({ children, onSubmit, className }) => <form onSubmit={onSubmit} className={className}>{children}</form>,
+  Row: ({ Label, Field, Errors, fieldType, errors, required }) => (
+    <Form.Row hasErrors={errors && errors.length > 0 ? true : false} required={required}>
+      {!['Button', 'CheckboxField'].includes(fieldType) && Label && <Label />}
+      <Field />
+      <Errors />
     </Form.Row>
   ),
-  Label: ({ label }) => <Form.Label>{label}</Form.Label>,
-  Errors: ({ errors }) => errors ? <Form.Helper>{errors}</Form.Helper> : null,
+  Label: ({ label, ...props }) => <Form.Label {...props}>{label}</Form.Label>,
+  Errors: ({ errors }) => <Form.Helper>{errors}</Form.Helper>,
 
-  TextField: props => <Form.Fields.Text {...props} />,
-  Button: props => <Form.Button {...props} />
+  TextField: (props) => <Form.Fields.Text {...props} />,
+
+  CheckboxField: (props) => <Form.Fields.Checkbox {...props} />,
+  CheckboxGroupField: (props) => <Form.Fields.Checkbox.Group {...props} />,
+  RadioField: (props) => <Form.Fields.Radio.Group {...props} />,
+
+  SelectField: (props) => <Form.Fields.Select {...props} />,
+
+  Button: (props) => <Button {...props} />
 };
 
 export default theme;
@@ -117,6 +84,36 @@ const translate = (key, args) => {
 export default translate;
 ```
 
+### Configure theme and translate
+
+Globally
+
+```js
+import FormBuilder from "@elevenlabs/react-formbuilder";
+import theme from "./theme";
+import translate from "./translate";
+
+export const initConfigFormBuilder = () => {
+    FormBuilder.translate = translate;
+    FormBuilder.theme = theme;
+}
+```
+
+Or instance formbuilder
+
+```js
+const LoginForm = () => {
+  const form = new FormBuilder();
+
+  form
+    .setTranslate(translate)
+    .setTheme(theme)
+    .createForm();
+
+  return form;
+}
+```
+
 ### Creating a Simple Form
 
 We will take as an example a login form.
@@ -130,19 +127,24 @@ const LoginForm = () => {
   const form = new FormBuilder();
 
   form
-    .setTranslate(translate)
-    .setTheme(theme)
     .createForm()
     .add("email", "TextField", {
       label: "Email",
       required: true,
-      validators: ["Required", "Email"]
+      validators: ["Required", "Email"],
+      initialValue: "john@gmail.com",
     })
     .add("password", "TextField", {
       type: "password",
       label: "Password",
       required: true,
-      validators: ["Required", ["IsGreaterThan", { length: 6 }]]
+      validators: [
+        "Required",
+        ["IsGreaterThan", { length: 6 }]
+      ],
+    })
+    .add("rememberMe", "CheckboxField", {
+      label: "Remember me",
     })
     .add("submit", "Button", {
       type: "submit",
@@ -226,16 +228,23 @@ class LoginScreen extends Component {
 
     return (
       <LoginForm.Form formikProps={formikProps}>
-        <Fields.Email.Errors />
-        <Fields.Password.Errors />
 
-        <Fields.Email.Label />
-        <Fields.Email.FieldType />
+      <LoginForm.Form {...formikProps}>
+        <Fields.Email.Row />
+        {/* or */}
+        {/* LoginForm.Row('email') */}
 
-        <Fields.Password.Label />
-        <Fields.Password.FieldType />
+        <div className="form__row">
+          <Fields.Password.Label />
+          <Fields.Password.Field />
+          <Fields.Password.Errors />
+        </div>
+        {/* or */}
+        {/* {LoginForm.Label('password')}
+        {LoginForm.Field('password')}
+        {LoginForm.Errors('password')} */}
 
-        <Fields.Submit.FieldType />
+        <Fields.Submit.Row />
       </LoginForm.Form>
     );
   };
@@ -283,13 +292,11 @@ From the formBuilder:
 const form = new FormBuilder();
 
 form
-  .setTranslate(translate)
-  .setTheme(theme)
   .createForm()
   .add("email", "TextField", {
     label: "Email",
     required: true,
-    initialValue: 'john',
+    initialValue: 'john@gmail.com',
     validators: ["Required", "Email"]
   })
   .add("password", "TextField", {
@@ -316,8 +323,6 @@ Apply a validator with this default key. The translation key is created automati
 const form = new FormBuilder();
 
 form
-  .setTranslate(translate)
-  .setTheme(theme)
   .createForm()
   .add("name", "TextField", {
     label: "Name",
@@ -331,8 +336,6 @@ If you want to change the default generate key:
 const form = new FormBuilder();
 
 form
-  .setTranslate(translate)
-  .setTheme(theme)
   .createForm()
   .add("name", "TextField", {
     label: "Name",
@@ -348,8 +351,6 @@ A completely custom validator:
 const form = new FormBuilder();
 
 form
-  .setTranslate(translate)
-  .setTheme(theme)
   .createForm()
   .add("name", "TextField", {
     label: "Name",
@@ -365,8 +366,6 @@ And examples with arguments:
 const form = new FormBuilder();
 
 form
-  .setTranslate(translate)
-  .setTheme(theme)
   .createForm()
   .add("name", "TextField", {
     label: "Name",
@@ -380,8 +379,6 @@ form
 const form = new FormBuilder();
 
 form
-  .setTranslate(translate)
-  .setTheme(theme)
   .createForm()
   .add("name", "TextField", {
     label: "Name",
@@ -395,8 +392,6 @@ form
 const form = new FormBuilder();
 
 form
-  .setTranslate(translate)
-  .setTheme(theme)
   .createForm()
   .add("name", "TextField", {
     label: "Name",

@@ -26,7 +26,6 @@
   "dependencies": {
     "formik": "^1.2.0",
     "lodash": "^4.17.10",
-    "recompose": "^0.30.0",
     "spected": "^0.7.0"
   },
   "devDependencies": {

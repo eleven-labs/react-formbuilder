@@ -34,10 +34,9 @@ export const buildValidators = ({ label = null, validators, translate = () => { 
 }
 
 export const getErrorsFromValidationResult = (validationResult) => {
-    const FIRST_ERROR = 0;
     return Object.keys(validationResult).reduce((errors, field) => {
         return validationResult[field] !== true
-            ? { ...errors, [field]: validationResult[field][FIRST_ERROR] }
+            ? { ...errors, [field]: validationResult[field] }
             : errors
     }, {})
 }

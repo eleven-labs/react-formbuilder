@@ -1,7 +1,9 @@
 import React from 'react';
-import { Formik, FastField, connect as formikConnect } from 'formik';
+import { Formik } from 'formik';
 import { merge, snakeCase, camelCase, capitalize } from 'lodash';
 import spected from 'spected';
+
+import FastComponentWithFormik from './components/FastComponentWithFormik';
 import { buildValidators, getErrorsFromValidationResult } from './helpers/validator';
 import validations from './validations';
 
@@ -88,7 +90,7 @@ class FormBuilder {
 
     _buildFieldComponent(name) {
         const Row = this._theme['Row'];
-        const { fieldType, required } = this._fields[name];
+        const fieldTypeProps = this._fields[name];
 
         const components = {
             Label: (props) => this.Label(name, props),
@@ -97,12 +99,11 @@ class FormBuilder {
         };
 
         this._fieldComponents[pascalCase(name)] = {
-            Row: (props) => (<FastField
+            Row: (props) => (<FastComponentWithFormik
                 name={name}
                 render={({ form }) => Row({
                     ...components,
-                    fieldType,
-                    required,
+                    ...fieldTypeProps,
                     errors: form.isSubmitting || form.touched[name] && form.errors[name] ? form.errors[name] : null,
                     ...props
                 })}
@@ -131,7 +132,7 @@ class FormBuilder {
         const FieldType = this._theme[fieldType];
         if (!FieldType) throw new Error(`The \`${fieldType}\` component does not exist in the theme you have set up!`);
 
-        return <FastField
+        return <FastComponentWithFormik
             name={name}
             render={({ field, form }) => {
                 const props = {
@@ -152,12 +153,15 @@ class FormBuilder {
     Errors(name, errorsProps = {}) {
         const Errors = this._theme['Errors'];
 
-        return formikConnect(({ formik, ...props }) => {
-            const errors = formik.errors[name];
-            const touch = formik.touched[name];
+        return <FastComponentWithFormik
+            name={name}
+            render={({ form }) => {
+                const errors = form.errors[name];
+                const touch = form.touched[name];
 
-            return formik.isSubmitting || touch && errors ? <Errors errors={errors} {...props} /> : null;
-        })(errorsProps);
+                return form.isSubmitting || touch && errors ? <Errors errors={errors} {...errorsProps} /> : null;
+            }}
+        />;
     }
 
     Row(name, rowProps = {}) {
@@ -190,18 +194,18 @@ class FormBuilder {
 
         this._buildFieldComponent(name);
 
-        if (!(/Button$/).test(fieldType)) {
+        if (this._theme[fieldType].initialValue) {
             this._initialValues = merge(
                 this._initialValues,
-                { [name]: props.initialValue ? props.initialValue : '' }
+                { [name]: props.initialValue ? props.initialValue : this._theme[fieldType].initialValue(props) }
             );
+        }
 
-            if (validators) {
-                this._validators = merge(
-                    this._validators,
-                    { [name]: validators }
-                );
-            }
+        if (validators) {
+            this._validators = merge(
+                this._validators,
+                { [name]: validators }
+            );
         }
 
         return this;

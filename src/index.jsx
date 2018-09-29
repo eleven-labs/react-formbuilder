@@ -6,6 +6,7 @@ import spected from 'spected';
 import FastComponentWithFormik from './components/FastComponentWithFormik';
 import { buildValidators, getErrorsFromValidationResult } from './helpers/validator';
 import validations from './validations';
+import { getIn, setIn } from './utils';
 
 const pascalCase = (string) => capitalize(camelCase(string));
 
@@ -90,7 +91,7 @@ class FormBuilder {
 
     _buildFieldComponent(name) {
         const Row = this._theme['Row'];
-        const fieldTypeProps = this._fields[name];
+        const fieldTypeProps = getIn(this._fields, name);
 
         const components = {
             Label: (props) => this.Label(name, props),
@@ -98,7 +99,7 @@ class FormBuilder {
             Errors: (props) => this.Errors(name, props)
         };
 
-        this._fieldComponents[pascalCase(name)] = {
+        this._fieldComponents = setIn(this._fieldComponents, name, {
             Row: (props) => (<FastComponentWithFormik
                 name={name}
                 render={({ form }) => Row({
@@ -109,12 +110,12 @@ class FormBuilder {
                 })}
             />),
             ...components,
-        };
+        });
     }
 
     Label(name, labelProps = {}) {
         const Label = this._theme['Label'];
-        const { id, label, required } = this._fields[name];
+        const { id, label, required } = getIn(this._fields, name);
 
         const props = {
             label,
@@ -127,7 +128,7 @@ class FormBuilder {
     }
 
     Field(name, fieldProps = {}) {
-        const { fieldType, ...fieldTypeProps } = this._fields[name];
+        const { fieldType, ...fieldTypeProps } = getIn(this._fields, name);
 
         const FieldType = this._theme[fieldType];
         if (!FieldType) throw new Error(`The \`${fieldType}\` component does not exist in the theme you have set up!`);
@@ -170,42 +171,23 @@ class FormBuilder {
     }
 
     add(name, fieldType, { validators, ...props }) {
-        const keyArray = name.split('.');
-        if (keyArray.length > 1) {
-            name = keyArray.reduce((acc, key) => {
-                if (!acc) acc += key;
-                else acc += `[${key}]`;
-
-                return acc;
-            }, '');
-        }
-
-        this._fields = merge(
-            this._fields,
-            {
-                [name]: {
-                    fieldType,
-                    name,
-                    id: camelCase(name),
-                    ...props
-                }
-            }
-        );
+        this._fields = setIn(this._fields, name, {
+            fieldType,
+            name,
+            id: camelCase(name),
+            ...props
+        });
 
         this._buildFieldComponent(name);
 
         if (this._theme[fieldType].initialValue) {
-            this._initialValues = merge(
-                this._initialValues,
-                { [name]: props.initialValue ? props.initialValue : this._theme[fieldType].initialValue(props) }
+            this._initialValues = setIn(this._initialValues, name,
+                props.initialValue ? props.initialValue : this._theme[fieldType].initialValue(props)
             );
         }
 
         if (validators) {
-            this._validators = merge(
-                this._validators,
-                { [name]: validators }
-            );
+            this._validators = merge(this._validators, { [name]: validators });
         }
 
         return this;
@@ -216,7 +198,7 @@ class FormBuilder {
             this._validatorsSpec = (values) => Object.keys(this._validators)
                 .reduce((acc, key) => {
                     const validators = this._validators[key];
-                    const { label, placeholder } = this._fields[key];
+                    const { label, placeholder } = getIn(this._fields, key);
 
                     acc[key] = buildValidators({
                         label: label || placeholder || null,
@@ -226,12 +208,15 @@ class FormBuilder {
                         messages: this._validationMessages(),
                         values,
                     });
+
                     return acc;
                 }, {});
         }
 
         const spec = this._validatorsSpec(values);
         const validationResult = spected(spec, values);
+
+        console.log(validationResult);
 
         return getErrorsFromValidationResult(validationResult);
     }
@@ -242,8 +227,8 @@ class FormBuilder {
         return (
             <Form {...props}>
                 {Object.keys(this.Fields).map((name, key) => {
-                    const { Row } = this.Fields[name];
-                    return <Row key={key} />;
+                    const Component = this.Fields[name];
+                    return <Component.Row key={key} />;
                 })}
             </Form>
         );

@@ -25,6 +25,7 @@ class FastComponentWithFormik extends React.Component {
     }
 
     shouldComponentUpdate(props) {
+        // console.log(this.props.name, this.props.formik, props.formik);
         if (this.props.shouldUpdate) {
             return this.props.shouldUpdate(props);
         } else if (

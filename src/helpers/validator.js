@@ -1,3 +1,5 @@
+import { setIn } from '../utils';
+
 export const buildValidators = ({ label = null, validators, translate = () => { }, validations = {}, messages = {}, values = {} }) => {
     validators = validators.map((validator) => {
         if (typeof validator === 'string') {
@@ -33,10 +35,15 @@ export const buildValidators = ({ label = null, validators, translate = () => { 
     return validators;
 }
 
-export const getErrorsFromValidationResult = (validationResult) => {
-    return Object.keys(validationResult).reduce((errors, field) => {
-        return validationResult[field] !== true
-            ? { ...errors, [field]: validationResult[field] }
-            : errors
-    }, {})
+export const getErrorsFromValidationResults = (validationResults, errors = {}) => {
+    return Object.keys(validationResults).reduce((errors, key) => {
+        const validationResult = validationResults[key];
+        if (validationResult !== true && Array.isArray(validationResult)) {
+            errors = setIn(errors, key, validationResult);
+        } else if (typeof validationResult === 'object') {
+            errors = setIn(errors, key, getErrorsFromValidationResults(validationResult, errors));
+        }
+
+        return errors;
+    }, errors)
 }

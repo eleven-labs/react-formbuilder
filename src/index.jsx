@@ -4,7 +4,7 @@ import { merge, snakeCase, camelCase, capitalize } from 'lodash';
 import spected from 'spected';
 
 import FastComponentWithFormik from './components/FastComponentWithFormik';
-import { buildValidators, getErrorsFromValidationResult } from './helpers/validator';
+import { buildValidators, getErrorsFromValidationResults } from './helpers/validator';
 import validations from './validations';
 import { getIn, setIn } from './utils';
 
@@ -105,7 +105,7 @@ class FormBuilder {
                 render={({ form }) => Row({
                     ...components,
                     ...fieldTypeProps,
-                    errors: form.isSubmitting || form.touched[name] && form.errors[name] ? form.errors[name] : null,
+                    errors: form.isSubmitting || getIn(form.touched, name) && getIn(form.errors, name) ? getIn(form.errors, name): null,
                     ...props
                 })}
             />),
@@ -141,9 +141,9 @@ class FormBuilder {
                     ...fieldTypeProps,
                     ...fieldProps,
                     formik: form,
-                    dirty: form.initialValues[name] !== form.values[name] ? true : false,
-                    touched: form.touched[name] ? form.touched[name] : false,
-                    errors: form.errors[name] ? form.errors[name] : null,
+                    dirty: getIn(form.initialValues, name) !== getIn(form.values, name) ? true : false,
+                    touched: getIn(form.touched, name) ? getIn(form.touched, name) : false,
+                    errors: getIn(form.errors, name) ? getIn(form.errors, name) : null,
                 };
 
                 return <FieldType {...props} />
@@ -157,8 +157,8 @@ class FormBuilder {
         return <FastComponentWithFormik
             name={name}
             render={({ form }) => {
-                const errors = form.errors[name];
-                const touch = form.touched[name];
+                const errors = getIn(form.errors, name);
+                const touch = getIn(form.touched, name);
 
                 return form.isSubmitting || touch && errors ? <Errors errors={errors} {...errorsProps} /> : null;
             }}
@@ -200,25 +200,24 @@ class FormBuilder {
                     const validators = this._validators[key];
                     const { label, placeholder } = getIn(this._fields, key);
 
-                    acc[key] = buildValidators({
+                    acc = setIn(acc, key, buildValidators({
                         label: label || placeholder || null,
                         validators,
                         translate: this._translate,
                         validations: this._validations,
                         messages: this._validationMessages(),
                         values,
-                    });
+                    }));
 
                     return acc;
                 }, {});
         }
 
         const spec = this._validatorsSpec(values);
-        const validationResult = spected(spec, values);
+        const validationResults = spected(spec, values);
+        const errors = getErrorsFromValidationResults(validationResults);
 
-        console.log(validationResult);
-
-        return getErrorsFromValidationResult(validationResult);
+        return errors;
     }
 
     _render(props) {

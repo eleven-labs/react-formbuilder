@@ -1,6 +1,6 @@
 {
   "name": "@elevenlabs/react-formbuilder",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Form builder for React, without tears",
   "main": "./lib/index.js",
   "scripts": {

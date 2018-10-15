@@ -25,12 +25,15 @@ class FastComponentWithFormik extends React.Component {
     }
 
     shouldComponentUpdate(props) {
-        // console.log(this.props.name, this.props.formik, props.formik);
+        const currentErrors = getIn(this.props.formik.errors, this.props.name);
+        const nextErrors = getIn(props.formik.errors, this.props.name);
+
         if (this.props.shouldUpdate) {
             return this.props.shouldUpdate(props);
         } else if (
             getIn(this.props.formik.values, this.props.name) !== getIn(props.formik.values, this.props.name) ||
-            !isSameArrays(getIn(this.props.formik.errors, this.props.name), getIn(props.formik.errors, this.props.name)) ||
+            Array.isArray(currentErrors) && Array.isArray(nextErrors) && !isSameArrays(currentErrors, nextErrors) ||
+            !Array.isArray(currentErrors) && !Array.isArray(nextErrors) && currentErrors !== nextErrors ||
             getIn(this.props.formik.touched, this.props.name) !== getIn(props.formik.touched, this.props.name) ||
             Object.keys(this.props).length !== Object.keys(props).length ||
             this.props.formik.isSubmitting !== props.formik.isSubmitting

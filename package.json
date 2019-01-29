@@ -1,11 +1,12 @@
 {
   "name": "@elevenlabs/react-formbuilder",
-  "version": "0.2.3",
+  "version": "0.2.51",
   "description": "Form builder for React, without tears",
   "main": "./lib/index.js",
   "scripts": {
     "clean": "rm -rf ./lib",
-    "build": "npm run clean && babel ./src --out-dir ./lib"
+    "build": "npm run clean && babel ./src --out-dir ./lib",
+    "start:example:antd": "cd ./examples/antd && yarn start"
   },
   "keywords": [
     "formbuilder",
@@ -30,9 +31,11 @@
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
     "babel-preset-env": "^1.7.0",
     "babel-preset-react": "^6.24.1",
     "babel-preset-stage-2": "^6.24.1",
+    "parcel": "^1.11.0",
     "react": "^16.4.2"
   },
   "peerDependencies": {

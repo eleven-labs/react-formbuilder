@@ -1,19 +1,14 @@
-import React from "react";
-import { Formik } from "formik";
-import { merge, snakeCase, camelCase, capitalize } from "lodash";
-import spected from "spected";
+import React from 'react';
+import { Formik, Field, FastField, connect as formikConnect } from 'formik';
+import { merge, snakeCase, camelCase, capitalize } from 'lodash';
+import spected from 'spected';
+import { buildValidators, getErrorsFromValidationResult } from './helpers/validator';
+import validations from './validations';
 
-import FastComponentWithFormik from "./components/FastComponentWithFormik";
-import { setIn } from "./utils";
-import {
-  buildValidators,
-  getErrorsFromValidationResult
-} from "./helpers/validator";
-import validations from "./validations";
-
-const pascalCase = string => capitalize(camelCase(string));
+const pascalCase = (string) => capitalize(camelCase(string));
 
 class FormBuilder {
+
   _fields = {};
   _fieldComponents = {};
 
@@ -50,7 +45,6 @@ class FormBuilder {
     this._validations = {
       ...this._validations,
       ...validations,
-      Email
     };
     return this;
   }
@@ -60,28 +54,19 @@ class FormBuilder {
       if (FormBuilder._defaultTheme) {
         this._theme = FormBuilder._defaultTheme;
       } else {
-        throw new Error("The theme is not defined!");
+        throw new Error('The theme is not defined!');
       }
     }
 
-    if (!this._theme.Form)
-      throw new Error(
-        "The `Form` component does not exist in the theme you have set up!"
-      );
-    if (!this._theme.Row)
-      throw new Error(
-        "The `Row` component does not exist in the theme you have set up!"
-      );
-    if (!this._theme.Label)
-      throw new Error(
-        "The `Label` component does not exist in the theme you have set up!"
-      );
+    if (!this._theme.Form) throw new Error('The `Form` component does not exist in the theme you have set up!');
+    if (!this._theme.Row) throw new Error('The `Row` component does not exist in the theme you have set up!');
+    if (!this._theme.Label) throw new Error('The `Label` component does not exist in the theme you have set up!');
 
     if (!this._translate) {
       if (FormBuilder._defaultTranslate) {
         this._translate = FormBuilder._defaultTranslate;
       } else {
-        throw new Error("The translate is not defined!");
+        throw new Error('The translate is not defined!');
       }
     }
 
@@ -92,108 +77,97 @@ class FormBuilder {
   }
 
   _validationMessages() {
-    const validationMessages = Object.keys(this._validations).reduce(
-      (acc, validationKey) => {
+    const validationMessages = Object.keys(this._validations)
+      .reduce((acc, validationKey) => {
         acc[validationKey] = `form.validators.${snakeCase(validationKey)}`;
         return acc;
-      },
-      {}
-    );
+      }, {});
 
     return validationMessages;
   }
 
-  _buildFieldComponent(name) {
-    const Row = this._theme["Row"];
-    const fieldTypeProps = this._fields[name];
+  _buildFieldComponent(name, notFastField) {
+    const Row = this._theme['Row'];
+    const { fieldType, ...fieldTypeProps } = this._fields[name];
 
     const components = {
-      Label: props => this.Label(name, props),
-      Field: props => this.Field(name, props),
-      Errors: props => this.Errors(name, props)
+      Label: (props) => this.Label(name, props),
+      Field: (props) => this.Field(name, props, notFastField),
+      Errors: (props) => this.Errors(name, props)
     };
 
+    let FormikField = FastField;
+    if (notFastField) {
+      FormikField = Field;
+    }
+
     this._fieldComponents[pascalCase(name)] = {
-      Row: props => (
-        <FastComponentWithFormik
-          name={name}
-          render={({ form }) =>
-            Row({
-              ...components,
-              ...fieldTypeProps,
-              errors:
-                form.isSubmitting || (form.touched[name] && form.errors[name])
-                  ? form.errors[name]
-                  : null,
-              ...props
-            })
-          }
-        />
-      ),
-      ...components
+      Row: (props) => (<FormikField
+        name={name}
+        render={({ form }) => Row({
+          ...components,
+          fieldType,
+          ...fieldTypeProps,
+          errors: form.isSubmitting || form.touched[name] && form.errors[name] ? form.errors[name] : null,
+          ...props
+        })}
+      />),
+      ...components,
     };
   }
 
   Label(name, labelProps = {}) {
-    const Label = this._theme["Label"];
+    const Label = this._theme['Label'];
     const { id, label, required } = this._fields[name];
 
     const props = {
       label,
       required,
       htmlFor: id,
-      ...labelProps
+      ...labelProps,
     };
 
     return <Label {...props} />;
   }
 
-  Field(name, fieldProps = {}) {
+  Field(name, fieldProps = {}, notFastField) {
     const { fieldType, ...fieldTypeProps } = this._fields[name];
 
     const FieldType = this._theme[fieldType];
-    if (!FieldType)
-      throw new Error(
-        `The \`${fieldType}\` component does not exist in the theme you have set up!`
-      );
+    if (!FieldType) throw new Error(`The \`${fieldType}\` component does not exist in the theme you have set up!`);
 
-    return (
-      <FastComponentWithFormik
-        name={name}
-        render={({ field, form }) => {
-          const props = {
-            ...field,
-            ...fieldTypeProps,
-            ...fieldProps,
-            formik: form,
-            dirty:
-              form.initialValues[name] !== form.values[name] ? true : false,
-            touched: form.touched[name] ? form.touched[name] : false,
-            errors: form.errors[name] ? form.errors[name] : null
-          };
+    let FormikField = FastField;
+    if (notFastField) {
+      FormikField = Field;
+    }
 
-          return <FieldType {...props} />;
-        }}
-      />
-    );
+    return <FormikField
+      name={name}
+      render={({ field, form }) => {
+        const props = {
+          ...field,
+          ...fieldTypeProps,
+          ...fieldProps,
+          formik: form,
+          dirty: form.initialValues[name] !== form.values[name] ? true : false,
+          touched: form.touched[name] ? form.touched[name] : false,
+          errors: form.errors[name] ? form.errors[name] : null,
+        };
+
+        return <FieldType {...props} />
+      }}
+    />;
   }
 
   Errors(name, errorsProps = {}) {
-    const Errors = this._theme["Errors"];
+    const Errors = this._theme['Errors'];
 
-    return (
-      <FastComponentWithFormik
-        name={name}
-        render={({ form }) => {
-          const errors = form.errors[name];
-          const touch = form.touched[name];
+    return formikConnect(({ formik, ...props }) => {
+      const errors = formik.errors[name];
+      const touch = formik.touched[name];
 
-          return form.isSubmitting || (touch && errors) ? (
-            <Errors errors={errors} {...errorsProps} />
-          ) : null;
-        }}
-      />
-    );
+      return formik.isSubmitting || touch && errors ? <Errors errors={errors} {...props} /> : null;
+    })(errorsProps);
   }
 
   Row(name, rowProps = {}) {
@@ -201,34 +175,43 @@ class FormBuilder {
     return <Row {...rowProps} />;
   }
 
-  add(name, fieldType, { validators, initialValue = null, ...props }) {
-    const keyArray = name.split(".");
+  add(name, fieldType, { validators, ...props }, notFastField = false) {
+    const keyArray = name.split('.');
     if (keyArray.length > 1) {
       name = keyArray.reduce((acc, key) => {
         if (!acc) acc += key;
         else acc += `[${key}]`;
 
         return acc;
-      }, "");
+      }, '');
     }
 
-    this._fields = merge(this._fields, {
-      [name]: {
-        fieldType,
-        name,
-        id: camelCase(name),
-        ...props
+    this._fields = merge(
+      this._fields,
+      {
+        [name]: {
+          fieldType,
+          name,
+          id: camelCase(name),
+          ...props
+        }
       }
-    });
+    );
 
-    this._buildFieldComponent(name);
+    this._buildFieldComponent(name, notFastField);
 
-    if (initialValue) {
-      this._initialValues = setIn(this._initialValues, name, initialValue);
-    }
+    if (!(/Button$/).test(fieldType)) {
+      this._initialValues = merge(
+        this._initialValues,
+        { [name]: props.initialValue ? props.initialValue : '' }
+      );
 
-    if (validators) {
-      this._validators = merge(this._validators, { [name]: validators });
+      if (validators) {
+        this._validators = merge(
+          this._validators,
+          { [name]: validators }
+        );
+      }
     }
 
     return this;
@@ -236,8 +219,8 @@ class FormBuilder {
 
   _validate(values) {
     if (!this._validatorsSpec) {
-      this._validatorsSpec = values =>
-        Object.keys(this._validators).reduce((acc, key) => {
+      this._validatorsSpec = (values) => Object.keys(this._validators)
+        .reduce((acc, key) => {
           const validators = this._validators[key];
           const { label, placeholder } = this._fields[key];
 
@@ -247,7 +230,7 @@ class FormBuilder {
             translate: this._translate,
             validations: this._validations,
             messages: this._validationMessages(),
-            values
+            values,
           });
           return acc;
         }, {});
@@ -277,7 +260,7 @@ class FormBuilder {
   }
 
   Form = ({ handleSubmit, children, ...props }) => {
-    const Form = this._theme["Form"];
+    const Form = this._theme['Form'];
     return (
       <Form onSubmit={handleSubmit} {...props}>
         {children}
@@ -285,22 +268,26 @@ class FormBuilder {
     );
   };
 
-  Formik = ({ formRef, onSubmit, initialValues = {}, render, ...props }) => {
-    let formikRender = formikProps =>
-      this._render({ ...formikProps, ...props });
-    if (render)
-      formikRender = formikProps => render({ ...formikProps, ...props });
+  Formik = ({ formRef, onSubmit, initialValues = {}, render, hasErrors, ...props }) => {
+    let formikRender = (formikProps) => this._render({ ...formikProps, ...props });
+    if (render) formikRender = (formikProps) => render({ ...formikProps, ...props });
 
-    return (
-      <Formik
-        ref={formRef}
-        onSubmit={onSubmit}
-        initialValues={{ ...this._initialValues, ...initialValues }}
-        validate={values => this._validate(values)}
-        render={formikRender}
-      />
-    );
-  };
+    let formikValidate = (values) => {
+      const errors = this._validate(values);
+      if (hasErrors) {
+        hasErrors(Object.keys(errors).length > 0);
+      };
+      return errors;
+    };
+
+    return <Formik
+      ref={formRef}
+      onSubmit={onSubmit}
+      initialValues={{ ...this._initialValues, ...initialValues }}
+      validate={formikValidate}
+      render={formikRender}
+    />
+  }
 }
 
 module.exports = FormBuilder;

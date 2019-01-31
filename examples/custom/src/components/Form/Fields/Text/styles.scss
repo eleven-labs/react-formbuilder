@@ -1,0 +1,16 @@
+.form {
+    &__text-field {
+        height: 2.25rem;
+        width: 100%;
+        line-height: 2.25rem;
+        padding: 0 1rem;
+        border: 1px solid #e9edf6;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px 0 #f3f7fe;
+        box-sizing: border-box;
+        outline: none;
+        &:focus {
+            border-color: #c8d0df;
+        }
+    }
+}

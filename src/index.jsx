@@ -14,75 +14,52 @@ import validations from "./validations";
 const pascalCase = string => capitalize(camelCase(string));
 
 class FormBuilder {
+  static _theme = null;
+  static _translate = null;
+  static _validations = validations;
+
   _fields = {};
   _fieldComponents = {};
-
-  _translate = null;
-  _theme = null;
   _initialValues = {};
   _validators = {};
-  _validations = validations;
   _validatorsSpec = null;
 
   static set theme(theme) {
-    FormBuilder._defaultTheme = theme;
+    FormBuilder._theme = theme;
   }
 
   static set translate(translate) {
-    FormBuilder._defaultTranslate = translate;
+    FormBuilder._translate = translate;
   }
 
   static set validations(validations) {
-    FormBuilder._defaultValidations = validations;
-  }
-
-  setTheme(theme) {
-    this._theme = theme;
-    return this;
-  }
-
-  setTranslate(translate) {
-    this._translate = translate;
-    return this;
-  }
-
-  setValidations(validations) {
-    this._validations = {
-      ...this._validations,
-      ...validations,
-      Email
-    };
-    return this;
+    FormBuilder._validations = merge(FormBuilder._validations, validations);
   }
 
   createForm() {
-    if (!this._theme) {
-      if (FormBuilder._defaultTheme) {
-        this._theme = FormBuilder._defaultTheme;
-      } else {
-        throw new Error("The theme is not defined!");
-      }
+    if (!FormBuilder._theme) {
+      throw new Error("The theme is not defined!");
     }
 
-    if (!this._theme.Form)
+    if (!FormBuilder._theme.Form) {
       throw new Error(
         "The `Form` component does not exist in the theme you have set up!"
       );
-    if (!this._theme.Row)
+    }
+
+    if (!FormBuilder._theme.Row) {
       throw new Error(
         "The `Row` component does not exist in the theme you have set up!"
       );
-    if (!this._theme.Label)
+    }
+    if (!FormBuilder._theme.Label) {
       throw new Error(
         "The `Label` component does not exist in the theme you have set up!"
       );
+    }
 
-    if (!this._translate) {
-      if (FormBuilder._defaultTranslate) {
-        this._translate = FormBuilder._defaultTranslate;
-      } else {
-        throw new Error("The translate is not defined!");
-      }
+    if (!FormBuilder._translate) {
+      throw new Error("The translate is not defined!");
     }
 
     this._initialValues = {};
@@ -92,7 +69,7 @@ class FormBuilder {
   }
 
   _validationMessages() {
-    const validationMessages = Object.keys(this._validations).reduce(
+    const validationMessages = Object.keys(FormBuilder._validations).reduce(
       (acc, validationKey) => {
         acc[validationKey] = `form.validators.${snakeCase(validationKey)}`;
         return acc;
@@ -104,7 +81,7 @@ class FormBuilder {
   }
 
   _buildFieldComponent(name) {
-    const Row = this._theme["Row"];
+    const Row = FormBuilder._theme["Row"];
     const fieldTypeProps = this._fields[name];
 
     const components = {
@@ -135,7 +112,7 @@ class FormBuilder {
   }
 
   Label(name, labelProps = {}) {
-    const Label = this._theme["Label"];
+    const Label = FormBuilder._theme["Label"];
     const { id, label, required } = this._fields[name];
 
     const props = {
@@ -151,7 +128,7 @@ class FormBuilder {
   Field(name, fieldProps = {}) {
     const { fieldType, ...fieldTypeProps } = this._fields[name];
 
-    const FieldType = this._theme[fieldType];
+    const FieldType = FormBuilder._theme[fieldType];
     if (!FieldType)
       throw new Error(
         `The \`${fieldType}\` component does not exist in the theme you have set up!`
@@ -179,7 +156,7 @@ class FormBuilder {
   }
 
   Errors(name, errorsProps = {}) {
-    const Errors = this._theme["Errors"];
+    const Errors = FormBuilder._theme["Errors"];
 
     return (
       <FastComponentWithFormik
@@ -201,7 +178,7 @@ class FormBuilder {
     return <Row {...rowProps} />;
   }
 
-  add(name, fieldType, { validators, initialValue = null, ...props }) {
+  add(name, fieldType, { validators, initialValue = "", ...props }) {
     const keyArray = name.split(".");
     if (keyArray.length > 1) {
       name = keyArray.reduce((acc, key) => {
@@ -223,9 +200,7 @@ class FormBuilder {
 
     this._buildFieldComponent(name);
 
-    if (initialValue) {
-      this._initialValues = setIn(this._initialValues, name, initialValue);
-    }
+    this._initialValues = setIn(this._initialValues, name, initialValue);
 
     if (validators) {
       this._validators = merge(this._validators, { [name]: validators });
@@ -244,8 +219,8 @@ class FormBuilder {
           acc[key] = buildValidators({
             label: label || placeholder || null,
             validators,
-            translate: this._translate,
-            validations: this._validations,
+            translate: FormBuilder._translate,
+            validations: FormBuilder._validations,
             messages: this._validationMessages(),
             values
           });
@@ -277,7 +252,7 @@ class FormBuilder {
   }
 
   Form = ({ handleSubmit, children, ...props }) => {
-    const Form = this._theme["Form"];
+    const Form = FormBuilder._theme["Form"];
     return (
       <Form onSubmit={handleSubmit} {...props}>
         {children}

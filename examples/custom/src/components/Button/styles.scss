@@ -1,0 +1,24 @@
+.button {
+    display: inline-block;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    font-size: 14px;
+    text-align: center;
+    cursor: pointer;
+    outline: none;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    &--small {
+        padding: 0.25rem 0.5rem;
+    }
+    &--large {
+        padding: 1rem 2rem;
+    }
+    &--fluid {
+        width: 100%;
+    }
+    &--disabled {
+        cursor: not-allowed;
+    }
+}

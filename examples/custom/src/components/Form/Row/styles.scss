@@ -1,0 +1,41 @@
+.form {
+    &__row {
+        margin-top: 1rem;
+        &--required {
+            .form__label {
+                &::after {
+                    content: '*';
+                    margin-left: 0.2rem;
+                    color: #f5222d;
+                }
+            }
+        }
+        &--success {
+            .form__label,
+            .form__helper {
+                color: #52c41a;
+            }
+            [class^="form__field"] {
+                border-color: #52c41a;
+            }
+        }
+        &--warning {
+            .form__label,
+            .form__helper {
+                color: #faad14;
+            }
+            [class^="form__field"] {
+                border-color: #faad14;
+            }
+        }
+        &--error {
+            .form__label,
+            .form__helper {
+                color: #f5222d;
+            }
+            [class^="form__field"] {
+                border-color: #f5222d;
+            }
+        }
+    }
+}

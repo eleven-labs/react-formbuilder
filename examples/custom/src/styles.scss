@@ -1,0 +1,14 @@
+@import url("https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css");
+@import url("https://fonts.googleapis.com/css?family=Hind+Vadodara:300,400,500,600,700");
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+
+body {
+  font-family: "Hind Vadodara", "Helvetica Neue", "Lucida Grande", Helvetica,
+    sans-serif;
+  font-size: 14px;
+  user-select: none;
+}
+
+.screen-login {
+  margin: 10rem;
+}

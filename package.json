@@ -1,8 +1,9 @@
 {
   "name": "@elevenlabs/react-formbuilder",
-  "version": "0.2.51",
+  "version": "0.2.7",
   "description": "Form builder for React, without tears",
   "main": "./lib/index.js",
+  "files": ["lib"],
   "scripts": {
     "clean": "rm -rf ./lib",
     "build": "npm run clean && babel ./src --out-dir ./lib",
@@ -35,7 +36,7 @@
     "babel-preset-env": "^1.7.0",
     "babel-preset-react": "^6.24.1",
     "babel-preset-stage-2": "^6.24.1",
-    "parcel": "^1.11.0",
+    "parcel": "^1.12.4",
     "react": "^16.4.2"
   },
   "peerDependencies": {
